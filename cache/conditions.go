@@ -22,6 +22,10 @@ func (c StringFieldCondition[T]) Match(item T) bool {
 		return strings.HasPrefix(fieldValue, c.Value)
 	case "endsWith":
 		return strings.HasSuffix(fieldValue, c.Value)
+	case "gte":
+		return fieldValue >= c.Value
+	case "lte":
+		return fieldValue <= c.Value
 	default:
 		return false
 	}

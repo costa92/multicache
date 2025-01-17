@@ -4,10 +4,10 @@ import "time"
 
 // User represents the user table model
 type User struct {
-	ID     uint    `json:"id"`
-	Name   string  `json:"name"`
-	Email  string  `json:"email"`
-	Orders []Order `json:"orders"`
+	ID    uint   `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	// Orders []Order `json:"orders"`
 }
 
 // func (u User) GetTableName() string {

@@ -2,7 +2,7 @@
 
 ## 安装
 ```bash
-go get github.com/yourusername/multicache
+go get github.com/costa92/multicache
 ```
 
 ## 快速开始

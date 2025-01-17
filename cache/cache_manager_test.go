@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/costa92/multicache/models"
 	"github.com/stretchr/testify/assert"
-	"github.com/yourusername/multicache/models"
 )
 
 type mockUserLoader struct {
@@ -25,7 +25,7 @@ func TestCacheManager(t *testing.T) {
 	}
 
 	loader := &mockUserLoader{users: testUsers}
-	cache := NewCacheManager[models.User](loader, 5*time.Minute)
+	cache := NewCacheManager[models.User](loader).WithTTL(5 * time.Minute)
 
 	t.Run("Refresh loads data correctly", func(t *testing.T) {
 		err := cache.Refresh()
@@ -36,14 +36,14 @@ func TestCacheManager(t *testing.T) {
 	})
 
 	t.Run("Get returns correct item", func(t *testing.T) {
-		user, exists := cache.Get(1)
-		assert.True(t, exists)
+		user, err := cache.Get(1)
+		assert.NoError(t, err)
 		assert.Equal(t, "John", user.Name)
 	})
 
 	t.Run("Get returns false for non-existent item", func(t *testing.T) {
-		_, exists := cache.Get(999)
-		assert.False(t, exists)
+		_, err := cache.Get(999)
+		assert.Error(t, err)
 	})
 
 	t.Run("Clear removes all items", func(t *testing.T) {
