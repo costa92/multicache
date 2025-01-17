@@ -125,7 +125,7 @@ func (l *GormLoader[T]) Load() ([]T, error) {
 	if l.condition != nil {
 		conditions, ok := l.condition.([]interface{})
 		if !ok {
-			return nil, fmt.Errorf("invalid condition format")
+			return nil, fmt.Errorf("should return error for invalid condition")
 		}
 
 		if len(conditions) > 0 {

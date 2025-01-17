@@ -17,7 +17,7 @@ import (
 // Example 1: Using GormLoader directly for real-time queries
 func UseGormLoaderExample(db *gorm.DB) {
 	// Create a loader for active users with orders
-	userLoader := loader.NewGormLoader(db, models.User{}).
+	userLoader := loader.NewGormLoader(db, models.UserV2{}).
 		WithPreload("Orders").
 		WithCondition("status = ?", "active").
 		WithPreloadQuery("Orders", "created_at > ?", time.Now().AddDate(0, -1, 0))

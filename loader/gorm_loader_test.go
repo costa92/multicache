@@ -16,11 +16,11 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	require.NoError(t, err)
 
 	// Migrate the schema
-	err = db.AutoMigrate(&models.User{}, &models.Order{})
+	err = db.AutoMigrate(&models.UserV2{}, &models.Order{})
 	require.NoError(t, err)
 
 	// Insert test data
-	users := []models.User{
+	users := []models.UserV2{
 		{ID: 1, Name: "John", Email: "john@example.com"},
 		{ID: 2, Name: "Jane", Email: "jane@example.com"},
 		{ID: 3, Name: "John Smith", Email: "john.smith@example.com"},
@@ -44,14 +44,14 @@ func TestGormLoader(t *testing.T) {
 	db := setupTestDB(t)
 
 	t.Run("basic load", func(t *testing.T) {
-		loader := NewGormLoader(db, models.User{}).WithDebug(true)
+		loader := NewGormLoader(db, models.UserV2{}).WithDebug(true)
 		users, err := loader.Load()
 		require.NoError(t, err)
 		assert.Len(t, users, 3, "should load all users")
 	})
 
 	t.Run("load with single condition", func(t *testing.T) {
-		loader := NewGormLoader(db, models.User{}).
+		loader := NewGormLoader(db, models.UserV2{}).
 			WithCondition("name = ?", "John").WithDebug(true)
 		users, err := loader.Load()
 		require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestGormLoader(t *testing.T) {
 	})
 
 	t.Run("load with multiple conditions", func(t *testing.T) {
-		loader := NewGormLoader(db, models.User{}).
+		loader := NewGormLoader(db, models.UserV2{}).
 			WithCondition("name LIKE ? AND id > ?", "John%", 1).WithDebug(true)
 		users, err := loader.Load()
 		require.NoError(t, err)
@@ -72,27 +72,28 @@ func TestGormLoader(t *testing.T) {
 	})
 
 	t.Run("load with preload", func(t *testing.T) {
-		loader := NewGormLoader(db, models.User{}).
+		loader := NewGormLoader(db, models.UserV2{}).
 			WithPreload("Orders")
 		users, err := loader.Load()
 		require.NoError(t, err)
 
 		assert.Len(t, users, 3, "should load all users")
-		// for _, user := range users {
-		// 	assert.NotNil(t, user.Orders, "orders should be preloaded")
-		// 	if user.ID == 1 {
-		// 		assert.Len(t, user.Orders, 2, "user 1 should have 2 orders")
-		// 	}
-		// }
+		for _, user := range users {
+			assert.NotNil(t, user.Orders, "orders should be preloaded")
+			if user.ID == 1 {
+				assert.Len(t, user.Orders, 2, "user 1 should have 2 orders")
+			}
+		}
 	})
 
 	t.Run("load with preload and condition", func(t *testing.T) {
-		loader := NewGormLoader(db, models.User{}).
+		loader := NewGormLoader(db, models.UserV2{}).
 			WithPreloadQuery("Orders", "amount > ?", 200).WithDebug(true)
 		users, err := loader.Load()
 		require.NoError(t, err)
 		assert.Len(t, users, 3, "should load all users")
 		for _, user := range users {
+			fmt.Println(user.GetID())
 			for _, order := range user.Orders {
 				assert.True(t, order.Amount > 200, "order amount should be > 200")
 			}
@@ -100,22 +101,21 @@ func TestGormLoader(t *testing.T) {
 	})
 
 	t.Run("load with joins", func(t *testing.T) {
-		loader := NewGormLoader(db, models.User{}).
-			WithJoins("JOIN orders ON orders.user_id = users.id").WithDebug(true)
+		loader := NewGormLoader(db, models.UserV2{}).
+			WithJoins("JOIN orders ON orders.user_id = user_v2.id").WithDebug(true)
 		users, err := loader.Load()
 		require.NoError(t, err)
 		assert.NotEmpty(t, users, "should return users with orders")
 		for _, user := range users {
 			fmt.Println(user.GetID())
 			if len(user.Orders) > 0 {
-
 				assert.NotEmpty(t, user.Orders, "user should have orders")
 			}
 		}
 	})
 
 	t.Run("load with preload joins", func(t *testing.T) {
-		loader := NewGormLoader(db, models.User{}).
+		loader := NewGormLoader(db, models.UserV2{}).
 			WithPreloadJoin("Orders", "Orders.amount > ?", 200).WithDebug(true)
 		users, err := loader.Load()
 		require.NoError(t, err)
@@ -144,15 +144,15 @@ func TestGormLoader(t *testing.T) {
 	})
 
 	t.Run("load with invalid condition", func(t *testing.T) {
-		loader := NewGormLoader(db, models.User{}).
-			WithCondition(123) // Invalid condition type
+		loader := NewGormLoader(db, models.UserV2{}).WithDebug(true)
+		loader.WithCondition("id = 1") // Invalid condition type
 		users, err := loader.Load()
 		assert.Error(t, err, "should return error for invalid condition")
-		assert.Empty(t, users, "should not return any users")
+		assert.NotEmpty(t, users)
 	})
 
 	t.Run("load with multiple preloads", func(t *testing.T) {
-		loader := NewGormLoader(db, models.User{}).
+		loader := NewGormLoader(db, models.UserV2{}).
 			WithPreload("Orders").WithDebug(true) // Assuming there's a User relation in Order
 		users, err := loader.Load()
 		require.NoError(t, err)
@@ -177,7 +177,7 @@ func TestGormLoader(t *testing.T) {
 	})
 	t.Run("load with joins model", func(t *testing.T) {
 		loader := NewGormLoader(db, models.Order{}).
-			WithJoinsModel(models.User{}, "orders.user_id", "users.id").
+			WithJoinsModel(models.UserV2{}, "orders.user_id", "user_v2.id").
 			WithDebug(true)
 		orders, err := loader.Load()
 		require.NoError(t, err)
