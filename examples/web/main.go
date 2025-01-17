@@ -18,9 +18,9 @@ import (
 
 type Server struct {
 	db          *gorm.DB
-	userCache   *cache.CacheManager[models.User]
+	userCache   *cache.CacheManager[models.UserV2]
 	orderCache  *cache.RelatedCacheManager[models.Order]
-	userLoader  *loader.GormLoader[models.User]
+	userLoader  *loader.GormLoader[models.UserV2]
 	orderLoader *loader.GormLoader[models.Order]
 }
 
@@ -39,12 +39,12 @@ func NewServer() (*Server, error) {
 	}
 
 	// Auto migrate schemas
-	if err := db.AutoMigrate(&models.User{}, &models.Order{}); err != nil {
+	if err := db.AutoMigrate(&models.UserV2{}, &models.Order{}); err != nil {
 		return nil, err
 	}
 
 	// Insert test data using bulk insert for efficiency
-	users := []models.User{
+	users := []models.UserV2{
 		{ID: 1, Name: "John Doe", Email: "john@example.com"},
 		{ID: 2, Name: "Jane Smith", Email: "jane@example.com"},
 	}
@@ -64,11 +64,13 @@ func NewServer() (*Server, error) {
 	}
 
 	// Initialize loaders
-	userLoader := loader.NewGormLoader(db, models.User{}).WithDebug(true)
-	orderLoader := loader.NewGormLoader(db, models.Order{}).WithJoinsModel(models.User{}, "orders.user_id", "users.id").WithDebug(true)
+	userLoader := loader.NewGormLoader(db, models.UserV2{}).WithDebug(true)
+	orderLoader := loader.NewGormLoader(db, models.Order{}).
+		WithJoinsModel(models.UserV2{}, "orders.user_id", "user_v2.id").
+		WithDebug(true)
 
 	// Initialize caches with TTL
-	userCache := cache.NewCacheManager[models.User](userLoader).WithTTL(5 * time.Minute)
+	userCache := cache.NewCacheManager[models.UserV2](userLoader).WithTTL(5 * time.Minute)
 	orderCache := cache.NewRelatedCacheManager[models.Order](orderLoader, 1*time.Minute)
 
 	// Refresh caches
@@ -134,8 +136,8 @@ func (s *Server) handleSearchUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nameCondition := cache.StringFieldCondition[models.User]{
-		FieldExtractor: func(u models.User) string { return u.Name },
+	nameCondition := cache.StringFieldCondition[models.UserV2]{
+		FieldExtractor: func(u models.UserV2) string { return u.Name },
 		Value:          name,
 		Operation:      "contains",
 	}
